@@ -7,11 +7,16 @@ import math as m
 class GoalFinder:
     def __init__(self, width = 640, height = 480): # Constructor to get the video capture set up
 		#video Capture settings
-        self.videoPort = 0 #change to index cameras
-        self._vc = cv2.VideoCapture(self.videoPort)
+        self.videoPort = 0 #change to index camera
         self._width = 1.0 * width # Force a float
         self._height = 1.0 * height
 
+		#initialise video feed and make sure its good
+		try: 
+			self._vc = cv2.VideoCapture(self.videoPort)
+		except:
+			self._vc = None			
+		
 		#video resolution
         self._vc.set(cv.CV_CAP_PROP_FRAME_WIDTH, self._width)
         self._vc.set(cv.CV_CAP_PROP_FRAME_HEIGHT, self._height)
