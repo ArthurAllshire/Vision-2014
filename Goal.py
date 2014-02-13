@@ -102,18 +102,21 @@ if __name__ == "__main__":
     cv2.namedWindow("preview")
     while True:
         result = gf.find()
-        
+  
         ## After here is for visual feedback only
-        frame = result
-        for rect in gf.rectangles:
-            x,y,w,h = rect
-            cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0), 7)
+        try:
+			frame = result
+			for rect in gf.rectangles:
+				x,y,w,h = rect
+				cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0), 7)
 
-        #frame, contours, largest_index = result\
-        #cv2.drawContours(frame, contours, index, (0,255,0),
-        cv2.imshow("preview", frame)
-        print gf.absolute()
-        key = cv2.waitKey (20)
-        if key != -1:
-			break# Exit on any keybreak
-        # Get the next frame, and loop forever
+			#frame, contours, largest_index = result\
+			#cv2.drawContours(frame, contours, index, (0,255,0),
+			cv2.imshow("preview", frame)
+			print gf.absolute()
+			key = cv2.waitKey (20)
+			if key != -1:
+				break# Exit on any keybreak
+			# Get the next frame, and loop forever
+		except:
+			pass
