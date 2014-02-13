@@ -93,9 +93,9 @@ class GoalFinder:
 
     def absolute(self):
         # Convert xbar, ybar and diam to absolute values for showing on screen
-        return (int(self.angle),
-            int(self.xpos),
-            int(self.ypos))
+        return (int(self.xpos),
+            int(self.ypos),
+            int(self.angle))
 
 if __name__ == "__main__":
     gf = GoalFinder( 640, 480)
