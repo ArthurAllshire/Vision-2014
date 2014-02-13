@@ -7,7 +7,7 @@ import math as m
 class GoalFinder:
     def __init__(self, width = 640, height = 480): # Constructor to get the video capture set up
 		#video Capture settings
-        self.videoPort = 0 #change to index camera
+        self.videoPort = 1 #change to index camera
         self._width = 1.0 * width # Force a float
         self._height = 1.0 * height
 
