@@ -46,6 +46,9 @@ class GoalFinder:
     def find(self):
         if not self._vc:
             # Try to reinitialise, but still return None
+            import time
+            time.sleep(0.01)
+            
             self.__init__()
             return None
         # We have a video capture object so we can proceed
@@ -99,6 +102,8 @@ if __name__ == "__main__":
     cv2.namedWindow("preview")
     while True:
         result = gf.find()
+        
+        ## After here is for visual feedback only
         frame = result
         for rect in gf.rectangles:
             x,y,w,h = rect
