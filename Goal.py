@@ -85,10 +85,10 @@ class GoalFinder:
         self.rect_index = len(found_rectangles)
 
         #self.currentpos = (8*10**(-9)*(self.rectHeight**4))-(8*10**(-6)*(self.rectHeight**3))+(0.0032*(self.rectHeight**2))-(0.6061*self.rectHeight)+53.116
-        self.angle = m.acos(self.bestPosition/self.currentpos) #in radians
-        self.angle = (self.angle*m.pi/2)
-        self.xpos = self.currentpos*m.cos(self.angle)
-        self.ypos = self.currentpos*m.sin(self.angle)
+        #self.angle = m.asin(self.bestPosition/self.currentpos) #in radians
+        #self.angle = (self.angle*m.pi/2)
+        #self.xpos = self.currentpos*m.cos(self.angle)
+        #self.ypos = self.currentpos*m.sin(self.angle)
         return 	frame #self.rectangles#, contours, index#, contours, largest_index
 
     def absolute(self):
