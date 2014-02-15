@@ -103,7 +103,7 @@ class BallFinder:
             self.diam = 99.0
         # Return the frame, the contours and largest image in case we
         # want to show them on the screen
-        return frame, contours, largest_index
+        return (frame, contours, largest_index)
     
     def absolute(self):
         # Convert xbar, ybar and diam to absolute values for showing on screen

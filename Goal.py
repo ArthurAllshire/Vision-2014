@@ -12,9 +12,9 @@ class GoalFinder:
         self._height = 1.0 * height
 
 		#initialise video feed and make sure its good
-		try: 
-			self._vc = cv2.VideoCapture(self.videoPort)
-		except:
+        try: 
+            self._vc = cv2.VideoCapture(self.videoPort)
+        except:
 			self._vc = None			
 		
 		#video resolution
@@ -102,21 +102,20 @@ if __name__ == "__main__":
     cv2.namedWindow("preview")
     while True:
         result = gf.find()
-  
         ## After here is for visual feedback only
         try:
-			frame = result
-			for rect in gf.rectangles:
-				x,y,w,h = rect
-				cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0), 7)
+           frame = result
+           for rect in gf.rectangles:
+               x,y,w,h = rect
+               cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0), 7)
 
 			#frame, contours, largest_index = result\
 			#cv2.drawContours(frame, contours, index, (0,255,0),
-			cv2.imshow("preview", frame)
-			print gf.absolute()
-			key = cv2.waitKey (20)
-			if key != -1:
-				break# Exit on any keybreak
+           cv2.imshow("preview", frame)
+           print gf.absolute()
+           key = cv2.waitKey (20)
+           if key != -1:
+               break# Exit on any keybreak
 			# Get the next frame, and loop forever
-		except:
-			pass
+        except:
+		    pass
