@@ -1,14 +1,15 @@
 import cv2
 import cv2.cv as cv
-import numpy as np
-import math
+
+#Camera number
+CAMERA = 0
 
 #Kernel Dimensions
 kernel = cv2.getStructuringElement (cv2.MORPH_ELLIPSE,(4, 4))
 
 class BallFinder:
     def __init__(self, colour='r', width = 640, height = 480): # Constructor to get the video capture set up
-        self._vc = cv2.VideoCapture(-1)
+        self._vc = cv2.VideoCapture(CAMERA)
         self._width = 1.0 * width # Force a float
         self._height = 1.0 * height
         
@@ -18,12 +19,12 @@ class BallFinder:
         self._vc.set(cv.CV_CAP_PROP_CONTRAST, 0.5)   #0.01
         
         #Max. distance the camera can detect is 13 feet
-		#DistanceThreshold is the distance threshold 
-		#It is the maximum distance that the camera will detect
+        #DistanceThreshold is the distance threshold 
+        #It is the maximum distance that the camera will detect
         self.DistanceThreshold = 13 #ft
         
         #distance formula from width of ball
-	    #distance = 1661.5*w**-1.075
+        #distance = 1661.5*w**-1.075
         self._MaxWidth = (1661.5/self.DistanceThreshold)**(1/1.075)*width/640.0 #pixels
 
         #squareness ratio
@@ -75,27 +76,27 @@ class BallFinder:
         if contours: 
             for index, contour in enumerate(contours):
                 if cv2.contourArea(contour) > largest_size: 
-					
-					#get co-ordinates and dimensions
-					x,y,w,h = cv2.boundingRect(contours[largest_index])
-					
-					#ball squareness
-					ballratio = 1.0 * w/h
-					
-					if ballratio > self.target_ratio and ballratio < 1.0/self.target_ratio:
-						largest_size = cv2.contourArea(contour)
-						largest_index = index
-						
+                    
+                    #get co-ordinates and dimensions
+                    x,y,w,h = cv2.boundingRect(contours[largest_index])
+                    
+                    #ball squareness
+                    ballratio = 1.0 * w/h
+                    
+                    if ballratio > self.target_ratio and ballratio < 1.0/self.target_ratio:
+                        largest_size = cv2.contourArea(contour)
+                        largest_index = index
+                        
             if largest_size > 0:
-				if w > self._MaxWidth:
-					moments = cv2.moments(contours[largest_index])
-					if moments['m00'] != 0:
-						self.xbar = 2.0*moments['m10']/moments['m00']/self._width - 1.0
-						self.ybar = 2.0*moments['m01']/moments['m00']/self._height - 1.0
-						x,y,w,h = cv2.boundingRect(contours[largest_index])
-						self.diam = (w + h)/ self._width
-						ball_found = True
-						            
+                if w > self._MaxWidth:
+                    moments = cv2.moments(contours[largest_index])
+                    if moments['m00'] != 0:
+                        self.xbar = 2.0*moments['m10']/moments['m00']/self._width - 1.0
+                        self.ybar = 2.0*moments['m01']/moments['m00']/self._height - 1.0
+                        x,y,w,h = cv2.boundingRect(contours[largest_index])
+                        self.diam = (w + h)/ self._width
+                        ball_found = True
+                                    
         if not ball_found:
             # No ball found so set the member variables to invalid values
             self.xbar = 99.0
@@ -126,7 +127,7 @@ if __name__ == "__main__":
             x, y, diam = bf.absolute() # Get screen plottable values
             
             cv2.circle(frame, (x, y), diam/2, (200,255,0), 3)
-			# Draw the largest contour
+            # Draw the largest contour
             cv2.drawContours(frame, contours, largest_index, (0,255,0), 2) 
         
         
