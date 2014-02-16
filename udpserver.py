@@ -8,7 +8,7 @@ HOST, PORT = "", 4774 # Bind to all address on port 4774
 CRIO = "10.47.74.2"
 
 gf = GoalFinder()
-bf = BallFinder()
+bf = BallFinder(width = 160, height = 120)
 
 ball_finding = threading.Event()
 goal_finding = threading.Event()
@@ -24,7 +24,7 @@ def find_goal():
         goal_finding.wait()
         gf.find()
         # Output a UDP packet to whoever is listening
-        response = 'g{} {} {}'.format(gf.xpos, gf.ypos, gf.angle)
+        response = 'g{} {} {}'.format(gf.grange, gf.angle, gf.dummy)
         print response
         sendsock.sendto(response, (CRIO, PORT))
        
