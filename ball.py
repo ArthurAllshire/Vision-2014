@@ -1,8 +1,9 @@
 import cv2
 import cv2.cv as cv
+import numpy as np
 
 #Camera number
-CAMERA = 0
+CAMERA = 1
 
 #Kernel Dimensions
 kernel = cv2.getStructuringElement (cv2.MORPH_ELLIPSE,(4, 4))
@@ -51,18 +52,21 @@ class BallFinder:
         # We have a video capture object so we can proceed
         retval, frame = self._vc.read()
         if not retval:
+            self.xbar = 99.0 # xbar, ybar should be in the range [-1.0, 1.0]
+            self.ybar = 99.0
+            self.diam = 99.0
             return None
         # The capture was successful. Start processing
         hsv_image = cv2.cvtColor(frame, cv.CV_BGR2HSV)
         # Choose mask based on self._is_red
         if self._is_red:
             # Red alliance
-            mask_neg = cv2.inRange(hsv_image, (0, 50, 50), (10, 255, 255))
-            mask_pos = cv2.inRange(hsv_image, (170, 50, 50), (180, 255, 255))
+            mask_neg = cv2.inRange(hsv_image, np.array((0, 50, 50)), np.array((10, 255, 255)))
+            mask_pos = cv2.inRange(hsv_image, np.array((170, 50, 50)), np.array((180, 255, 255)))
             mask = mask_pos | mask_neg
         else:
             # Blue alliance
-            mask = cv2.inRange(hsv_image, (105, 50, 50), (130, 255, 255))
+            mask = cv2.inRange(hsv_image, np.array((105, 50, 50)), np.array((130, 255, 255)))
         
         #Eroding and Dilating mask
         opened = cv2.erode(mask, kernel, iterations = 7)
