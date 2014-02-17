@@ -13,8 +13,11 @@ bf = BallFinder(width = 160, height = 120)
 ball_finding = threading.Event()
 goal_finding = threading.Event()
 
+
+
 recvsock = socket.socket(socket.AF_INET, # Internet
-                     socket.SOCK_DGRAM) # UDP                   
+                     socket.SOCK_DGRAM) # UDP
+recvsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)                   
 recvsock.bind((HOST, PORT)) # Any interface, port 4774
 sendsock = socket.socket(socket.AF_INET, # Internet
                      socket.SOCK_DGRAM) # UDP
