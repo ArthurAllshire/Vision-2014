@@ -44,14 +44,8 @@ class BallFinder:
     def setColour(self, colour):
         self._is_red = (colour[0].lower() == 'r')
 
-    def find(self):
-        if not self._vc:
-            # Try to reinitialise, but still return None
-            self.__init__()
-            return None
-        # We have a video capture object so we can proceed
-        retval, frame = self._vc.read()
-        if not retval:
+    def find(self, frame):
+        if frame == None:
             self.xbar = 99.0 # xbar, ybar should be in the range [-1.0, 1.0]
             self.ybar = 99.0
             self.diam = 99.0
@@ -110,6 +104,19 @@ class BallFinder:
         # want to show them on the screen
         return (frame, contours, largest_index)
     
+    def capture(self):
+        if not self._vc:
+            # Try to reinitialise, but still return None
+            self.__init__()
+            return None
+        # We have a video capture object so we can proceed
+        retval, frame = self._vc.read()
+        if retval:
+            return frame
+        else:
+            return None
+
+    
     def absolute(self):
         # Convert xbar, ybar and diam to absolute values for showing on screen
         return (int((self.xbar+1.0)*self._width/2.0),
@@ -120,7 +127,7 @@ if __name__ == "__main__":
     bf = BallFinder('r', 640, 480)
     cv2.namedWindow("preview")
     
-    result = bf.find()
+    result = bf.find(bf.capture())
     while result != None:
         frame, contours, largest_index = result
         
@@ -141,4 +148,4 @@ if __name__ == "__main__":
         if key != -1: # Exit on any key
             break
         # Get the next frame, and loop forever
-        result = bf.find()
+        result = bf.find(bf.capture())
