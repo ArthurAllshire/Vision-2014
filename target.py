@@ -16,7 +16,7 @@ def findTarget(image):
     # which means a maximum of 255. To get around this OpenCV takes hue values
     # in the range [0, 180]. This means 120 degrees (for example) maps to 60 in
     # OpenCV.
-    lower = np.array([88, 0, 0])
+    lower = np.array([88, 50, 0])
     upper = np.array([92, 255, 255])
     mask = cv2.inRange(hsv_image, lower, upper)
     result = cv2.bitwise_and(image,image, mask=mask)
@@ -59,7 +59,7 @@ def findTarget(image):
     ####################
     # Dummy values to get it working
     (x, y, w, h, angle) = (0, 0, 0, 0, 0)
-    result_image = result#image
+    result_image = blurred#image
     ####################
     
     return x, y, w, h, angle, result_image
