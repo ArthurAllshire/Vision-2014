@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 def findTarget(image):
     '''Returns centre coordinates (x,y), dimensions (height, width),
@@ -7,7 +8,7 @@ def findTarget(image):
     '''
     
     # Convert from BGR colourspace to HSV. Makes thresholding easier.
-    ##hsv_image = ???
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     
     # Threshold the image to only get the green of the target. This gives us a
     # mask to apply to the original image (if we want).
@@ -15,12 +16,15 @@ def findTarget(image):
     # which means a maximum of 255. To get around this OpenCV takes hue values
     # in the range [0, 180]. This means 120 degrees (for example) maps to 60 in
     # OpenCV.
-    ##mask = ???
-    
+    lower = np.array([88, 0, 0])
+    upper = np.array([92, 255, 255])
+    mask = cv2.inRange(hsv_image, lower, upper)
+    result = cv2.bitwise_and(image,image, mask=mask)
+
     # The thresholding will leave some ragged edges, and some rogue points in
     # the mask. Use a Gaussian Blur to smooth this out.
-    ##blurred = ???
-    
+    blurred = cv2.GaussianBlur(result, (3,3), 0)
+
     # OpenCV can find contours in the image - essentially closed loops of edges.
     # We are expecting the largest contour is the target.
     # First get all the contours:
@@ -55,7 +59,7 @@ def findTarget(image):
     ####################
     # Dummy values to get it working
     (x, y, w, h, angle) = (0, 0, 0, 0, 0)
-    result_image = image
+    result_image = result#image
     ####################
     
     return x, y, w, h, angle, result_image
@@ -65,16 +69,18 @@ if __name__ == "__main__":
     # or a frame from the video stream
     # Store it in a variable called 'image'
     
-    ##image = ???
-    
+    image = cv2.imread("img/target/45degrees/D1.jpg", -1)
+    """
     ################
     # Dummy image to get it going
     import numpy as np
     image = np.zeros((480, 640, 3), np.uint8)
     image[:] = (0, 180, 0) # BGR
     ################
+     """
     
     x, y, w, h, angle, processed_image = findTarget(image)
+    print processed_image
     cv2.namedWindow("preview")
     cv2.imshow("preview", processed_image)
     
