@@ -16,14 +16,14 @@ def findTarget(image):
     # which means a maximum of 255. To get around this OpenCV takes hue values
     # in the range [0, 180]. This means 120 degrees (for example) maps to 60 in
     # OpenCV.
-    lower = np.array([89, 30, 130])
+    lower = np.array([89, 30, 150])
     upper = np.array([90, 255, 255])
     mask = cv2.inRange(hsv_image, lower, upper)
     result = cv2.bitwise_and(image,image, mask=mask)
 
     # The thresholding will leave some ragged edges, and some rogue points in
     # the mask. Use a Gaussian Blur to smooth this out.
-    blurred = cv2.GaussianBlur(result, (5, 5), 0)
+    blurred = cv2.GaussianBlur(result, (7, 7), 0)
 
     # OpenCV can find contours in the image - essentially closed loops of edges.
     # We are expecting the largest contour is the target.
