@@ -35,29 +35,28 @@ def findTarget(image):
         if cv2.contourArea(contour) > largest_area:
             largest = contour
             largest_area = cv2.contourArea(contour)
-    target_contour = [largest]
-    cv2.drawContours(blurred, target_contour, 0, (0, 0, 255), -1)
     
-    # Now find the largest and do some sanity checking to make sure we have
-    # actually got a target in view.
-    ##largest = ???
-    ## <insert sanity checking here>
+    target_contour = largest
+    
+    #cv2.drawContours(blurred, [target_contour], 0, (0, 0, 255), -1)
+
     
     # We know our target is a rectangle. This means we can fit a bounding box
     # to it. We should make it an oriented bounding box (OBB) because if the
     # target is to the side it appears on an angle in our image.
-    ##obb = ???
+    rect = cv2.minAreaRect(target_contour)
     
     # Now that we have an OBB we can get its vital stats to return to the
     # caller. Remember that these numbers need to be independent of the size
     # of the image (we can't return them in pixels). Scale everything relative
     # to the image - between [-1, 1]. So (1,1) would be the top right of the
     # image, (-1,-1) bottom left, and (0,0) dead centre.
-    ## x = ???
-    ## y = ???
-    ## w = ???
-    ## h = ???
-    ## angle = ???
+    height, width, depth = image.shape
+    x = rect[0][0]/width
+    y = rect[0][1]/height
+    w = rect[1][0]
+    h = rect[1][1]
+    angle = rect[2]
     
     # We can return an altered image so that we can check that things are
     # working properly.
@@ -66,7 +65,7 @@ def findTarget(image):
     
     ####################
     # Dummy values to get it working
-    (x, y, w, h, angle) = (0, 0, 0, 0, 0)
+    #(x, y, w, h, angle) = (0, 0, 0, 0, 0)
     result_image = blurred#image
     ####################
     
@@ -88,7 +87,7 @@ if __name__ == "__main__":
      """
     
     x, y, w, h, angle, processed_image = findTarget(image)
-    print processed_image
+    print "X:" + str(x) + " Y:" + str(y) + " Width:" + str(w) + " Height:" + str(h) + " Angle:" + str(angle)
     cv2.namedWindow("preview")
     cv2.imshow("preview", processed_image)
     
