@@ -28,7 +28,14 @@ def findTarget(image):
     # OpenCV can find contours in the image - essentially closed loops of edges.
     # We are expecting the largest contour is the target.
     # First get all the contours:
-    ##contours = ???
+    contours, heirarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    print contours
+    largest = []
+    for contour in contours:
+        if len(contour) > len(largest):
+            largest = contour
+    target_contour = [largest]
+    cv2.drawContours(blurred, target_contour, 0, (0, 255, 0), -1)
     
     # Now find the largest and do some sanity checking to make sure we have
     # actually got a target in view.
