@@ -16,7 +16,7 @@ def findTarget(image):
     # which means a maximum of 255. To get around this OpenCV takes hue values
     # in the range [0, 180]. This means 120 degrees (for example) maps to 60 in
     # OpenCV.
-    lower = np.array([89, 30, 150])
+    lower = np.array([88, 30, 150])
     upper = np.array([90, 255, 255])
     mask = cv2.inRange(hsv_image, lower, upper)
     result = cv2.bitwise_and(image,image, mask=mask)
@@ -29,13 +29,14 @@ def findTarget(image):
     # We are expecting the largest contour is the target.
     # First get all the contours:
     contours, heirarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    print contours
     largest = []
+    largest_area = 0 #store the area of largest here so we don't have to compute the area of the largest contour for every check
     for contour in contours:
-        if len(contour) > len(largest):
+        if cv2.contourArea(contour) > largest_area:
             largest = contour
+            largest_area = cv2.contourArea(contour)
     target_contour = [largest]
-    cv2.drawContours(blurred, target_contour, 0, (0, 255, 0), -1)
+    cv2.drawContours(blurred, target_contour, 0, (0, 0, 255), -1)
     
     # Now find the largest and do some sanity checking to make sure we have
     # actually got a target in view.
