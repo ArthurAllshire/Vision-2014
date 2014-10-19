@@ -45,6 +45,10 @@ def findTarget(image):
     # to it. We should make it an oriented bounding box (OBB) because if the
     # target is to the side it appears on an angle in our image.
     rect = cv2.minAreaRect(target_contour)
+    obb_image = image
+    obb = cv2.cv.BoxPoints(rect)
+    obb = np.int0(obb)
+    cv2.drawContours(obb_image, [obb], -1, (0,255,0))
     
     # Now that we have an OBB we can get its vital stats to return to the
     # caller. Remember that these numbers need to be independent of the size
@@ -66,7 +70,7 @@ def findTarget(image):
     ####################
     # Dummy values to get it working
     #(x, y, w, h, angle) = (0, 0, 0, 0, 0)
-    result_image = blurred#image
+    result_image = obb_image#image
     ####################
     
     return x, y, w, h, angle, result_image
