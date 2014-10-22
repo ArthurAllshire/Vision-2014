@@ -56,11 +56,22 @@ def findTarget(image):
     # to the image - between [-1, 1]. So (1,1) would be the top right of the
     # image, (-1,-1) bottom left, and (0,0) dead centre.
     width, height, depth = image.shape
+    #if nessacary fix the angle values and swap width and height
+    if rect[1][0]>rect[1][1]:
+        w=rect[1][0]/width
+        h=rect[1][1]/width
+        angle = rect[2]
+    else:
+        w=rect[1][1]/width
+        h=rect[1][0]/width
+        angle = 90+rect[2]
     x = 2*(rect[0][0]/width)-1
     y = 2*(rect[0][1]/height)-1
+    """
     w = rect[1][0]/ width
     h = rect[1][1]/width
     angle = rect[2]
+    """
     
     # We can return an altered image so that we can check that things are
     # working properly.
