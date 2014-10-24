@@ -1,11 +1,14 @@
 import cv2
 import numpy as np
 
+MIN_AREA=150 # the minimum area that the largest contour can be, otherwise findTarget returns None
+
 def findTarget(image):
     '''Returns centre coordinates (x,y), dimensions (height, width),
     inclination angle, and the tweaked image (for manual/automatic 
     checking - not actually used by the robot itself).
     '''
+    global MIN_AREA
     
     # Convert from BGR colourspace to HSV. Makes thresholding easier.
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -29,13 +32,18 @@ def findTarget(image):
     # We are expecting the largest contour is the target.
     # First get all the contours:
     contours, heirarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    if len(contours) == 0:
+        return 0, 0, 0, 0, 0, 0
     largest = []
     largest_area = 0 #store the area of largest here so we don't have to compute the area of the largest contour for every check
     for contour in contours:
         if cv2.contourArea(contour) > largest_area:
             largest = contour
             largest_area = cv2.contourArea(contour)
-    
+
+    if largest_area < MIN_AREA:
+        return 0, 0, 0, 0, 0, 0
+
     target_contour = largest
     
     #cv2.drawContours(blurred, [target_contour], 0, (0, 0, 255), -1)
@@ -55,7 +63,7 @@ def findTarget(image):
     # of the image (we can't return them in pixels). Scale everything relative
     # to the image - between [-1, 1]. So (1,1) would be the top right of the
     # image, (-1,-1) bottom left, and (0,0) dead centre.
-    width, height, depth = image.shape
+    height, width, depth = image.shape
     #if nessacary fix the angle values and swap width and height
     if rect[1][0]>rect[1][1]:
         w=rect[1][0]/width
@@ -102,9 +110,12 @@ if __name__ == "__main__":
      """
     
     x, y, w, h, angle, processed_image = findTarget(image)
-    print "X:" + str(x) + " Y:" + str(y) + " Width:" + str(w) + " Height:" + str(h) + " Angle:" + str(angle)
-    cv2.namedWindow("preview")
-    cv2.imshow("preview", processed_image)
+    if not x:
+        print "No target found"
+    else:
+        print "X:" + str(x) + " Y:" + str(y) + " Width:" + str(w) + " Height:" + str(h) + " Angle:" + str(angle)
+        cv2.namedWindow("preview")
+        cv2.imshow("preview", processed_image)
     
-    # Wait for a key, or the preview image just disappears...
-    key = cv2.waitKey(0)
+        # Wait for a key, or the preview image just disappears...
+        key = cv2.waitKey(0)
