@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import server
 
 MIN_AREA=150 # the minimum area that the largest contour can be, otherwise findTarget returns None
 
@@ -33,7 +34,7 @@ def findTarget(image):
     # First get all the contours:
     contours, heirarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if len(contours) == 0:
-        return 0, 0, 0, 0, 0, image
+        return [0, 0, 0, 0, 0, image]
     largest = []
     largest_area = 0 #store the area of largest here so we don't have to compute the area of the largest contour for every check
     for contour in contours:
@@ -42,7 +43,7 @@ def findTarget(image):
             largest_area = cv2.contourArea(contour)
 
     if largest_area < MIN_AREA:
-        return 0, 0, 0, 0, 0, image
+        return [0, 0, 0, 0, 0, image]
 
     target_contour = largest
     
@@ -92,7 +93,7 @@ def findTarget(image):
     result_image = obb_image#image
     ####################
     
-    return x, y, w, h, angle, result_image
+    return [x, y, w, h, angle, result_image]
     
 if __name__ == "__main__":
     # Make a camera stream
@@ -101,10 +102,14 @@ if __name__ == "__main__":
     while True:
         # get an image from the camera
         ret, image = cap.read()
-        x, y, w, h, angle, processed_image = findTarget(image)
+        to_send = findTarget(image)
+        [x, y, w, h, angle, processed_image] = to_send
+        to_send = to_send[:-1]
         if not w:
             print "No target found"
-        print "X:" + str(x) + " Y:" + str(y) + " Width:" + str(w) + " Height:" + str(h) + " Angle:" + str(angle)
+        else:
+            print "X:" + str(x) + " Y:" + str(y) + " Width:" + str(w) + " Height:" + str(h) + " Angle:" + str(angle)
+            server.udp_send(to_send)
         cv2.imshow("Live Capture", processed_image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
