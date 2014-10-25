@@ -33,7 +33,7 @@ def findTarget(image):
     # First get all the contours:
     contours, heirarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if len(contours) == 0:
-        return 0, 0, 0, 0, 0, image
+        return [0, 0, 0, 0, 0], image
     largest = []
     largest_area = 0 #store the area of largest here so we don't have to compute the area of the largest contour for every check
     for contour in contours:
@@ -42,7 +42,7 @@ def findTarget(image):
             largest_area = cv2.contourArea(contour)
 
     if largest_area < MIN_AREA:
-        return 0, 0, 0, 0, 0, image
+        return [0, 0, 0, 0, 0], image
 
     target_contour = largest
     
@@ -92,7 +92,7 @@ def findTarget(image):
     result_image = obb_image#image
     ####################
     
-    return x, y, w, h, angle, result_image
+    return [x, y, w, h, angle], result_image
     
 if __name__ == "__main__":
     # Load an image. This could be a test image from a file,
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     ################
      """
     
-    x, y, w, h, angle, processed_image = findTarget(image)
+    [x, y, w, h, angle], processed_image = findTarget(image)
     if not w:
         print "No target found"
     else:
