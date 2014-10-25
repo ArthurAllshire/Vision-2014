@@ -95,27 +95,16 @@ def findTarget(image):
     return x, y, w, h, angle, result_image
     
 if __name__ == "__main__":
-    # Load an image. This could be a test image from a file,
-    # or a frame from the video stream
-    # Store it in a variable called 'image'
-    
-    image = cv2.imread("img/target/45degrees/D3.jpg", -1)
-    """
-    ################
-    # Dummy image to get it going
-    import numpy as np
-    image = np.zeros((480, 640, 3), np.uint8)
-    image[:] = (0, 180, 0) # BGR
-    ################
-     """
-    
-    x, y, w, h, angle, processed_image = findTarget(image)
-    if not w:
-        print "No target found"
-    else:
+    # Make a camera stream
+    cap = cv2.VideoCapture(-1)
+
+    while True:
+        # get an image from the camera
+        ret, image = cap.read()
+        x, y, w, h, angle, processed_image = findTarget(image)
+        if not w:
+            print "No target found"
         print "X:" + str(x) + " Y:" + str(y) + " Width:" + str(w) + " Height:" + str(h) + " Angle:" + str(angle)
-        cv2.namedWindow("preview")
-        cv2.imshow("preview", processed_image)
-    
-        # Wait for a key, or the preview image just disappears...
-        key = cv2.waitKey(0)
+        cv2.imshow("Live Capture", processed_image)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
