@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import server
+import sys
 
 MIN_AREA=150 # the minimum area that the largest contour can be, otherwise findTarget returns None
 
@@ -34,7 +35,7 @@ def findTarget(image):
     # First get all the contours:
     contours, heirarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if len(contours) == 0:
-        return [0, 0, 0, 0, 0], image
+        return [0, 0, 0, 0, 0], blurred
     largest = []
     largest_area = 0 #store the area of largest here so we don't have to compute the area of the largest contour for every check
     for contour in contours:
@@ -43,7 +44,7 @@ def findTarget(image):
             largest_area = cv2.contourArea(contour)
 
     if largest_area < MIN_AREA:
-        return [0, 0, 0, 0, 0], image
+        return [0, 0, 0, 0, 0], blurred
 
     target_contour = largest
     
@@ -96,18 +97,34 @@ def findTarget(image):
     return [x, y, w, h, angle], result_image
     
 if __name__ == "__main__":
-    # Make a camera stream
-    cap = cv2.VideoCapture(-1)
+    # By default we operate in daemon mode and from live camera
+    daemon = True
+    from_file = False
+    if len(sys.argv) != 1:
+        # We have additional arguments - find the correct mode
+        daemon = False
+        if sys.argv[1] != 'live':
+            # Load from the specified file
+            from_file = True
+            image = cv2.imread("img/target/" + sys.argv[1], -1)
+    if not from_file:
+        # Make a camera stream
+        cap = cv2.VideoCapture(-1)
 
     while True:
-        # get an image from the camera
-        ret, image = cap.read()
+        # Get an image from the camera
+        if not from_file:
+            ret, image = cap.read()
+        
         to_send, processed_image = findTarget(image)
         if not to_send[2]:
-            print "No target found"
+            if not daemon:
+                print "No target found"
         else:
-            print "X:" + str(to_send[0]) + " Y:" + str(to_send[1]) + " Width:" + str(to_send[2]) + " Height:" + str(to_send[3]) + " Angle:" + str(to_send[4])
+            if not daemon:
+                print "X:" + str(to_send[0]) + " Y:" + str(to_send[1]) + " Width:" + str(to_send[2]) + " Height:" + str(to_send[3]) + " Angle:" + str(to_send[4])
             server.udp_send(to_send)
-        cv2.imshow("Live Capture", processed_image)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        if not daemon:
+            cv2.imshow("Live Capture", processed_image)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
