@@ -2,10 +2,11 @@ import cv2
 import numpy as np
 import server
 import sys
+from collections import OrderedDict
 
-RATIO = 23.5/4
+RATIO = 23.5/4 # width/height
 TARGET_TOL = 0.1
-MIN_AREA = 300
+MIN_AREA = 300.0/(640**2)
 BRIGHTNESS = 0.2
 CONTRAST = 0.9
 
@@ -39,28 +40,28 @@ def findTarget(image):
     # First get all the contours:
     contours, heirarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if len(contours) == 0:
-        return [0, 0, 0, 0, 0], image
+        return OrderedDict([('x',0), ('y',0), ('w',0), ('h',0), ('angle',0)]), image
 
-    target_contour = []
+    target_contour = None
+    target_rect = None
     target_area = 0
     found_target = False
     stats = []
     rect = []
     for contour in contours:
         area = cv2.contourArea(contour)
-        if area>target_area and area>MIN_AREA:
+        if area>target_area and area>(MIN_AREA*image.shape[1]*image.shape[1]):
             rect = cv2.minAreaRect(contour)
             stats = get_data(rect, image)
-            if stats[3] != 0: # make sure we do not get a divide by zero error as this can occur if stats[3] is zero
-                if stats[2]/stats[3]*(1-TARGET_TOL) <= RATIO <= stats[2]/stats[3]*(1+TARGET_TOL):
-                    #print "found one"
-                    target_contour = contour
-                    target_area = area
-                    found_target = True
-                    break
+            if stats['w']/stats['h']*(1-TARGET_TOL) <= RATIO <= stats['w']/stats['h']*(1+TARGET_TOL):
+                #print "found one"
+                target_contour = contour
+                target_area = area
+                found_target = True
+                target_rect = rect
 
     if not found_target:
-        return [0, 0, 0, 0, 0], image
+        return OrderedDict([('x',0), ('y',0), ('w',0), ('h',0), ('angle',0)]), image
     
     #cv2.drawContours(blurred, [target_contour], 0, (0, 0, 255), -1)
 
@@ -69,7 +70,7 @@ def findTarget(image):
     # to it. We should make it an oriented bounding box (OBB) because if the
     # target is to the side it appears on an angle in our image.
     obb_image = image
-    obb = cv2.cv.BoxPoints(rect)
+    obb = cv2.cv.BoxPoints(target_rect)
     obb = np.int0(obb)
     cv2.drawContours(obb_image, [obb], -1, (0,0,255), 3)
     
@@ -110,7 +111,7 @@ def get_data(rect, image):
         angle = 90+rect[2]
     x = 2*(rect[0][0]/img_width)-1
     y = 2*(rect[0][1]/img_height)-1
-    return [x, y, w, h, angle]
+    return OrderedDict([('x',x), ('y',y), ('w',w), ('h',h), ('angle',angle)])
     
 if __name__ == "__main__":
     # By default we operate in daemon mode and from live camera
@@ -122,7 +123,6 @@ if __name__ == "__main__":
         if sys.argv[1] != 'live':
             # Load from the specified file
             from_file = True
-            image = cv2.imread("img/target/" + sys.argv[1], -1)
     if not from_file:
         # Make a camera stream
         cap = cv2.VideoCapture(-1)
@@ -131,17 +131,19 @@ if __name__ == "__main__":
 
     while True:
         # Get an image from the camera
-        if not from_file:
+        if from_file:
+            image = cv2.imread("img/target/" + sys.argv[1], -1)
+        else:
             ret, image = cap.read()
         
         to_send, processed_image = findTarget(image)
-        if not to_send[2]:
+        if not to_send['w']:
             if not daemon:
                 print "No target found"
         else:
             if not daemon:
-                print "X:" + str(to_send[0]) + " Y:" + str(to_send[1]) + " Width:" + str(to_send[2]) + " Height:" + str(to_send[3]) + " Angle:" + str(to_send[4])
-            server.udp_send(to_send)
+                print "X:" + str(to_send['x']) + " Y:" + str(to_send['y']) + " Width:" + str(to_send['w']) + " Height:" + str(to_send['h']) + " Angle:" + str(to_send['angle'])
+            server.udp_send(to_send.values())
         if not daemon:
             cv2.imshow("Live Capture", processed_image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
