@@ -3,14 +3,18 @@ import numpy as np
 import server
 import sys
 
-MIN_AREA=150 # the minimum area that the largest contour can be, otherwise findTarget returns None
+RATIO = 23.5/4
+TARGET_TOL = 0.1
+MIN_AREA = 150
+BRIGHTNESS = 0.2
+CONTRAST = 0.9
 
 def findTarget(image):
     '''Returns centre coordinates (x,y), dimensions (height, width),
     inclination angle, and the tweaked image (for manual/automatic 
     checking - not actually used by the robot itself).
     '''
-    global MIN_AREA
+    global RATIO, TARGET_TOL, MIN_AREA
     
     # Convert from BGR colourspace to HSV. Makes thresholding easier.
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -36,17 +40,24 @@ def findTarget(image):
     contours, heirarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if len(contours) == 0:
         return [0, 0, 0, 0, 0], image
-    largest = []
-    largest_area = 0 #store the area of largest here so we don't have to compute the area of the largest contour for every check
+
+    target_contour = []
+    target_area = 0
+    found_target = False
+    stats = []
+    rect = []
     for contour in contours:
-        if cv2.contourArea(contour) > largest_area:
-            largest = contour
-            largest_area = cv2.contourArea(contour)
+        rect = cv2.minAreaRect(contour)
+        stats = get_data(rect, image)
+        area = cv2.contourArea(contour)
+        if stats[3] != 0: # make sure we do not get a divide by zero error as this can occur if stats[3] is zero
+            if stats[2]/stats[3]*(1-TARGET_TOL) <= RATIO <= stats[2]/stats[3]*(1+TARGET_TOL) and area>largest_area and area>MIN_AREA:
+                target_contour = contour
+                found_target = True
 
-    if largest_area < MIN_AREA:
+
+    if not found_target:
         return [0, 0, 0, 0, 0], image
-
-    target_contour = largest
     
     #cv2.drawContours(blurred, [target_contour], 0, (0, 0, 255), -1)
 
@@ -54,7 +65,6 @@ def findTarget(image):
     # We know our target is a rectangle. This means we can fit a bounding box
     # to it. We should make it an oriented bounding box (OBB) because if the
     # target is to the side it appears on an angle in our image.
-    rect = cv2.minAreaRect(target_contour)
     obb_image = image
     obb = cv2.cv.BoxPoints(rect)
     obb = np.int0(obb)
@@ -65,18 +75,6 @@ def findTarget(image):
     # of the image (we can't return them in pixels). Scale everything relative
     # to the image - between [-1, 1]. So (1,1) would be the top right of the
     # image, (-1,-1) bottom left, and (0,0) dead centre.
-    height, width, depth = image.shape
-    #if nessacary fix the angle values and swap width and height
-    if rect[1][0]>rect[1][1]:
-        w=rect[1][0]/width
-        h=rect[1][1]/width
-        angle = rect[2]
-    else:
-        w=rect[1][1]/width
-        h=rect[1][0]/width
-        angle = 90+rect[2]
-    x = 2*(rect[0][0]/width)-1
-    y = 2*(rect[0][1]/height)-1
     """
     w = rect[1][0]/ width
     h = rect[1][1]/width
@@ -94,7 +92,23 @@ def findTarget(image):
     result_image = image
     ####################
     
-    return [x, y, w, h, angle], result_image
+    return stats, result_image
+
+#get the vital stats out of a rectangle
+def get_data(rect, image):
+    img_height, img_width, depth = image.shape
+    if rect[1][0]>rect[1][1]:
+        w=rect[1][0]/img_width
+        h=rect[1][1]/img_width
+        angle = rect[2]
+    else:
+        print "i"
+        w=rect[1][1]/img_width
+        h=rect[1][0]/img_width
+        angle = 90+rect[2]
+    x = 2*(rect[0][0]/img_width)-1
+    y = 2*(rect[0][1]/img_height)-1
+    return [x, y, w, h, angle]
     
 if __name__ == "__main__":
     # By default we operate in daemon mode and from live camera
@@ -110,8 +124,8 @@ if __name__ == "__main__":
     if not from_file:
         # Make a camera stream
         cap = cv2.VideoCapture(-1)
-        cap.set(cv2.cv.CV_CAP_PROP_BRIGHTNESS,0.2)
-        cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, 0.9)
+        cap.set(cv2.cv.CV_CAP_PROP_BRIGHTNESS, BRIGHTNESS)
+        cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, CONTRAST)
 
     while True:
         # Get an image from the camera
