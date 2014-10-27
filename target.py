@@ -21,8 +21,8 @@ def findTarget(image):
     # which means a maximum of 255. To get around this OpenCV takes hue values
     # in the range [0, 180]. This means 120 degrees (for example) maps to 60 in
     # OpenCV.
-    lower = np.array([88, 30, 150])
-    upper = np.array([90, 255, 255])
+    lower = np.array([85, 20, 150])
+    upper = np.array([95, 255, 255])
     mask = cv2.inRange(hsv_image, lower, upper)
     result = cv2.bitwise_and(image,image, mask=mask)
 
@@ -35,7 +35,7 @@ def findTarget(image):
     # First get all the contours:
     contours, heirarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if len(contours) == 0:
-        return [0, 0, 0, 0, 0], blurred
+        return [0, 0, 0, 0, 0], image
     largest = []
     largest_area = 0 #store the area of largest here so we don't have to compute the area of the largest contour for every check
     for contour in contours:
@@ -44,7 +44,7 @@ def findTarget(image):
             largest_area = cv2.contourArea(contour)
 
     if largest_area < MIN_AREA:
-        return [0, 0, 0, 0, 0], blurred
+        return [0, 0, 0, 0, 0], image
 
     target_contour = largest
     
@@ -58,7 +58,7 @@ def findTarget(image):
     obb_image = image
     obb = cv2.cv.BoxPoints(rect)
     obb = np.int0(obb)
-    cv2.drawContours(obb_image, [obb], -1, (0,255,0))
+    cv2.drawContours(obb_image, [obb], -1, (0,0,255), 3)
     
     # Now that we have an OBB we can get its vital stats to return to the
     # caller. Remember that these numbers need to be independent of the size
@@ -91,7 +91,7 @@ def findTarget(image):
     ####################
     # Dummy values to get it working
     #(x, y, w, h, angle) = (0, 0, 0, 0, 0)
-    result_image = obb_image#image
+    result_image = image
     ####################
     
     return [x, y, w, h, angle], result_image
@@ -110,6 +110,8 @@ if __name__ == "__main__":
     if not from_file:
         # Make a camera stream
         cap = cv2.VideoCapture(-1)
+        cap.set(cv2.cv.CV_CAP_PROP_BRIGHTNESS,0.2)
+        cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, 0.9)
 
     while True:
         # Get an image from the camera
@@ -123,6 +125,7 @@ if __name__ == "__main__":
         else:
             if not daemon:
                 print "X:" + str(to_send[0]) + " Y:" + str(to_send[1]) + " Width:" + str(to_send[2]) + " Height:" + str(to_send[3]) + " Angle:" + str(to_send[4])
+                print cap.get(12)
             server.udp_send(to_send)
         if not daemon:
             cv2.imshow("Live Capture", processed_image)
