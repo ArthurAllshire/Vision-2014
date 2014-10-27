@@ -5,7 +5,7 @@ import sys
 
 RATIO = 23.5/4
 TARGET_TOL = 0.1
-MIN_AREA = 150
+MIN_AREA = 300
 BRIGHTNESS = 0.2
 CONTRAST = 0.9
 
@@ -47,14 +47,17 @@ def findTarget(image):
     stats = []
     rect = []
     for contour in contours:
-        rect = cv2.minAreaRect(contour)
-        stats = get_data(rect, image)
         area = cv2.contourArea(contour)
-        if stats[3] != 0: # make sure we do not get a divide by zero error as this can occur if stats[3] is zero
-            if stats[2]/stats[3]*(1-TARGET_TOL) <= RATIO <= stats[2]/stats[3]*(1+TARGET_TOL) and area>largest_area and area>MIN_AREA:
-                target_contour = contour
-                found_target = True
-
+        if area>target_area and area>MIN_AREA:
+            rect = cv2.minAreaRect(contour)
+            stats = get_data(rect, image)
+            if stats[3] != 0: # make sure we do not get a divide by zero error as this can occur if stats[3] is zero
+                if stats[2]/stats[3]*(1-TARGET_TOL) <= RATIO <= stats[2]/stats[3]*(1+TARGET_TOL):
+                    #print "found one"
+                    target_contour = contour
+                    target_area = area
+                    found_target = True
+                    break
 
     if not found_target:
         return [0, 0, 0, 0, 0], image
@@ -102,7 +105,6 @@ def get_data(rect, image):
         h=rect[1][1]/img_width
         angle = rect[2]
     else:
-        print "i"
         w=rect[1][1]/img_width
         h=rect[1][0]/img_width
         angle = 90+rect[2]
@@ -139,7 +141,6 @@ if __name__ == "__main__":
         else:
             if not daemon:
                 print "X:" + str(to_send[0]) + " Y:" + str(to_send[1]) + " Width:" + str(to_send[2]) + " Height:" + str(to_send[3]) + " Angle:" + str(to_send[4])
-                print cap.get(12)
             server.udp_send(to_send)
         if not daemon:
             cv2.imshow("Live Capture", processed_image)
