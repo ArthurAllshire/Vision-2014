@@ -9,13 +9,14 @@ TARGET_TOL = 0.1
 MIN_AREA = 300.0/(640**2)
 BRIGHTNESS = 0.2
 CONTRAST = 0.9
+TARGET_CUTOFF = 45 # we will not find the target if it is at an angle greater than this
 
 def findTarget(image):
     '''Returns centre coordinates (x,y), dimensions (height, width),
     inclination angle, and the tweaked image (for manual/automatic 
     checking - not actually used by the robot itself).
     '''
-    global RATIO, TARGET_TOL, MIN_AREA
+    global RATIO, TARGET_TOL, MIN_AREA, TARGET_CUTOFF
     
     # Convert from BGR colourspace to HSV. Makes thresholding easier.
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -50,10 +51,10 @@ def findTarget(image):
     rect = []
     for contour in contours:
         area = cv2.contourArea(contour)
-        if area>target_area and area>(MIN_AREA*image.shape[1]*image.shape[1]):
+        if area>target_area and area>(MIN_AREA*image.shape[1]*image.shape[1]):# if is staggered for efficiency reasons
             rect = cv2.minAreaRect(contour)
             stats = get_data(rect, image)
-            if stats['w']/stats['h']*(1-TARGET_TOL) <= RATIO <= stats['w']/stats['h']*(1+TARGET_TOL):
+            if stats['w']/stats['h']*(1-TARGET_TOL) <= RATIO <= stats['w']/stats['h']*(1+TARGET_TOL) and -45<=stats['angle']<=45 and 2<stats['w']/stats['h']<RATIO*1.1:
                 #print "found one"
                 target_contour = contour
                 target_area = area
@@ -110,11 +111,7 @@ def get_data(rect, image):
     else:
         w=rect[1][1]/img_width
         h=rect[1][0]/img_width
-        if 2<w/h<RATIO*1.1 and -45<90+rect[2]<45:
-            angle = 90+rect[2]
-        else:
-            w, h = h, w #the height and width actually are correct
-            angle = rect[2]
+        angle = 90+rect[2]
     x = 2*(rect[0][0]/img_width)-1
     y = 2*(rect[0][1]/img_height)-1
     return OrderedDict([('x',x), ('y',y), ('w',w), ('h',h), ('angle',angle)])
