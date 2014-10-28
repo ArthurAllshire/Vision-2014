@@ -17,8 +17,11 @@ def findTarget(image):
     '''
     global RATIO, TARGET_TOL, MIN_AREA
     
+    # Use a Gaussian Blur to smooth out any ragged edges.
+    blurred = cv2.GaussianBlur(image, (7, 7), 0)
+
     # Convert from BGR colourspace to HSV. Makes thresholding easier.
-    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hsv_image = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
     
     # Threshold the image to only get the green of the target. This gives us a
     # mask to apply to the original image (if we want).
@@ -31,9 +34,10 @@ def findTarget(image):
     mask = cv2.inRange(hsv_image, lower, upper)
     result = cv2.bitwise_and(image,image, mask=mask)
 
-    # The thresholding will leave some ragged edges, and some rogue points in
-    # the mask. Use a Gaussian Blur to smooth this out.
-    blurred = cv2.GaussianBlur(result, (7, 7), 0)
+    # We can use the "opening" operation to remove noise from the mask.
+    # Opening is an erosion then dilation.
+    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(5,5))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=3)
 
     # OpenCV can find contours in the image - essentially closed loops of edges.
     # We are expecting the largest contour is the target.
@@ -60,11 +64,13 @@ def findTarget(image):
                 found_target = True
                 target_rect = rect
 
+    # Plot all the contours to see how much noise we had, and where the contours
+    # were found.
+    cv2.drawContours(image, contours, -1, (255, 0, 0), 2)
+
     if not found_target:
         return OrderedDict([('x',0), ('y',0), ('w',0), ('h',0), ('angle',0)]), image
     
-    #cv2.drawContours(blurred, [target_contour], 0, (0, 0, 255), -1)
-
     
     # We know our target is a rectangle. This means we can fit a bounding box
     # to it. We should make it an oriented bounding box (OBB) because if the
