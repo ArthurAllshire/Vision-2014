@@ -113,6 +113,7 @@ def get_data(rect, image):
         if 2<w/h<RATIO*1.1 and -45<90+rect[2]<45:
             angle = 90+rect[2]
         else:
+            w, h = h, w #the height and width actually are correct
             angle = rect[2]
     x = 2*(rect[0][0]/img_width)-1
     y = 2*(rect[0][1]/img_height)-1
