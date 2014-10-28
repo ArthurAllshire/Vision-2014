@@ -100,15 +100,20 @@ def findTarget(image):
 
 #get the vital stats out of a rectangle
 def get_data(rect, image):
+    global RATIO
     img_height, img_width, depth = image.shape
     if rect[1][0]>rect[1][1]:
         w=rect[1][0]/img_width
         h=rect[1][1]/img_width
         angle = rect[2]
+        swapped = False # we have not swapped the width and height
     else:
         w=rect[1][1]/img_width
         h=rect[1][0]/img_width
-        angle = 90+rect[2]
+        if 2<w/h<RATIO*1.1 and -45<90+rect[2]<45:
+            angle = 90+rect[2]
+        else:
+            angle = rect[2]
     x = 2*(rect[0][0]/img_width)-1
     y = 2*(rect[0][1]/img_height)-1
     return OrderedDict([('x',x), ('y',y), ('w',w), ('h',h), ('angle',angle)])
