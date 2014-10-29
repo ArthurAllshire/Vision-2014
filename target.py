@@ -65,7 +65,7 @@ def findTarget(image):
             rect = cv2.minAreaRect(contour)
             stats = get_data(rect, image)
             # if we have the right width to height ratio (within a cirtain tolerance) and the angle is within some threshold and our width to height ratio is within a cirtain range
-            if stats['w']/stats['h']*(1-TARGET_TOL) <= RATIO <= stats['w']/stats['h']*(1+TARGET_TOL) and -MAX_ANGLE<=stats['angle']<=MAX_ANGLE and 2<stats['w']/stats['h']<RATIO*(1+TARGET_TOL):
+            if -MAX_ANGLE<=stats['angle']<=MAX_ANGLE and 2<stats['w']/stats['h']<RATIO*(1+TARGET_TOL):
                 #print "found one"
                 target_contour = contour
                 target_area = area
