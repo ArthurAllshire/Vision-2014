@@ -5,7 +5,7 @@ import sys
 from collections import OrderedDict
 
 RATIO = 23.5/4 # width/height
-TARGET_TOL = 0.1
+TARGET_TOL = 0.7
 MIN_AREA = 300.0/(640**2)
 BRIGHTNESS = 0.2
 CONTRAST = 0.9
@@ -58,7 +58,7 @@ def findTarget(image):
         if area>target_area and area>(MIN_AREA*image.shape[1]*image.shape[1]):# if is staggered for efficiency reasons
             rect = cv2.minAreaRect(contour)
             stats = get_data(rect, image)
-            if stats['w']/stats['h']*(1-TARGET_TOL) <= RATIO <= stats['w']/stats['h']*(1+TARGET_TOL) and -45<=stats['angle']<=45 and 2<stats['w']/stats['h']<RATIO*1.1:
+            if stats['w']/stats['h']*(1-TARGET_TOL) <= RATIO <= stats['w']/stats['h']*(1+TARGET_TOL) and -45<=stats['angle']<=45 and 2<stats['w']/stats['h']<RATIO*(1+TARGET_TOL):
                 #print "found one"
                 target_contour = contour
                 target_area = area
