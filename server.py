@@ -13,7 +13,6 @@ def make_packet(to_send):
 def make_socket():
     global sock
     sock = socket(AF_INET, SOCK_DGRAM)
-    sock.bind(('', 0))
     sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
 
 def udp_send(to_send):
@@ -24,4 +23,3 @@ def udp_send(to_send):
     packet = make_packet(to_send)
 
     sock.sendto(packet, ('<broadcast>', PORT))
-    print "packet sent"
