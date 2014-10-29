@@ -5,18 +5,21 @@ import sys
 from collections import OrderedDict
 
 RATIO = 23.5/4 # width/height
-TARGET_TOL = 0.7
-MIN_AREA = 300.0/(640**2)
-BRIGHTNESS = 0.2
-CONTRAST = 0.9
+TARGET_TOL = 0.7 # the tolerance in the target width to height ratio
+MIN_AREA = 300.0/(640**2) # the minimum area of any contours that will be kept in the image
+BRIGHTNESS = 0.2 # the brightness camera property
+CONTRAST = 0.9 # the contrast camera property
 TARGET_CUTOFF = 45 # we will not find the target if it is at an angle greater than this
+ERODE_DIALATE_ITERATIONS = 3 # iteerations of erosion adn dialation
+HSV_BOUNDS = ([85, 20, 150], [95, 255, 255]) # the lower and upper bounds of the values that will be kept after thresholding
+MAX_ANGLE = 45 # the maximum (and its negative the minimum) angle that a contour can be at to be considered as elegable to be a target
 
 def findTarget(image):
     '''Returns centre coordinates (x,y), dimensions (height, width),
     inclination angle, and the tweaked image (for manual/automatic 
     checking - not actually used by the robot itself).
     '''
-    global RATIO, TARGET_TOL, MIN_AREA, TARGET_CUTOFF
+    global RATIO, TARGET_TOL, MIN_AREA, TARGET_CUTOFF, ERODE_DIALATE_ITERATIONS, HSV_BOUNDS
     
     # Use a Gaussian Blur to smooth out any ragged edges.
     blurred = cv2.GaussianBlur(image, (7, 7), 0)
@@ -30,15 +33,17 @@ def findTarget(image):
     # which means a maximum of 255. To get around this OpenCV takes hue values
     # in the range [0, 180]. This means 120 degrees (for example) maps to 60 in
     # OpenCV.
-    lower = np.array([85, 20, 150])
-    upper = np.array([95, 255, 255])
-    mask = cv2.inRange(hsv_image, lower, upper)
-    result = cv2.bitwise_and(image,image, mask=mask)
+    lower = np.array(HSV_BOUNDS[0]) # get lower and upper values from numpy
+    upper = np.array(HSV_BOUNDS[1])
+    mask = cv2.inRange(hsv_image, lower, upper) # filter out all but values in the above range
+    result = cv2.bitwise_and(image,image, mask=mask) # the image after thresholding
 
     # We can use the "opening" operation to remove noise from the mask.
     # Opening is an erosion then dilation.
     kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(5,5))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=3)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=ERODE_DIALATE_ITERATIONS)
+
+    erd_dlt_image = cv2.bitwise_and(image,image, mask=mask) #image after errode and dialate
 
     # OpenCV can find contours in the image - essentially closed loops of edges.
     # We are expecting the largest contour is the target.
@@ -53,12 +58,14 @@ def findTarget(image):
     found_target = False
     stats = []
     rect = []
+    #Then sanity checks to find the largest contour that has the correct dimentions, area and side ratio
     for contour in contours:
         area = cv2.contourArea(contour)
-        if area>target_area and area>(MIN_AREA*image.shape[1]*image.shape[1]):# if is staggered for efficiency reasons
+        if area>target_area and area>(MIN_AREA*image.shape[1]*image.shape[1]):# ifs are staggered for efficiency reasons
             rect = cv2.minAreaRect(contour)
             stats = get_data(rect, image)
-            if stats['w']/stats['h']*(1-TARGET_TOL) <= RATIO <= stats['w']/stats['h']*(1+TARGET_TOL) and -45<=stats['angle']<=45 and 2<stats['w']/stats['h']<RATIO*(1+TARGET_TOL):
+            # if we have the right width to height ratio (within a cirtain tolerance) and the angle is within some threshold and our width to height ratio is within a cirtain range
+            if stats['w']/stats['h']*(1-TARGET_TOL) <= RATIO <= stats['w']/stats['h']*(1+TARGET_TOL) and -MAX_ANGLE<=stats['angle']<=MAX_ANGLE and 2<stats['w']/stats['h']<RATIO*(1+TARGET_TOL):
                 #print "found one"
                 target_contour = contour
                 target_area = area
@@ -81,31 +88,11 @@ def findTarget(image):
     obb = np.int0(obb)
     cv2.drawContours(obb_image, [obb], -1, (0,0,255), 3)
     
-    # Now that we have an OBB we can get its vital stats to return to the
-    # caller. Remember that these numbers need to be independent of the size
-    # of the image (we can't return them in pixels). Scale everything relative
-    # to the image - between [-1, 1]. So (1,1) would be the top right of the
-    # image, (-1,-1) bottom left, and (0,0) dead centre.
-    """
-    w = rect[1][0]/ width
-    h = rect[1][1]/width
-    angle = rect[2]
-    """
-    
-    # We can return an altered image so that we can check that things are
-    # working properly.
-    ## result_image = <something with image and one of the intermediate steps -
-    ##                 mask, blurred, contours, obb, etc>
-    
-    ####################
-    # Dummy values to get it working
-    #(x, y, w, h, angle) = (0, 0, 0, 0, 0)
     result_image = image
-    ####################
     
     return stats, result_image
 
-#get the vital stats out of a rectangle
+#get the vital stats out of an obb's rect
 def get_data(rect, image):
     global RATIO
     img_height, img_width, depth = image.shape
