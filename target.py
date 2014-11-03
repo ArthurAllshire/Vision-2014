@@ -6,14 +6,14 @@ from collections import OrderedDict
 import argparse
 
 RATIO = 23.5/4 # width/height
-TARGET_TOL = 0.7 # the tolerance in the target width to height ratio
+TARGET_TOL = 0.6 # the tolerance in the target width to height ratio
 MIN_AREA = 300.0/(640**2) # the minimum area of any contours that will be kept in the image
 BRIGHTNESS = 0.2 # the brightness camera property
 CONTRAST = 0.9 # the contrast camera property
 WIDTH, HEIGHT = 640, 480 # making this smaller will improve speed
 TARGET_CUTOFF = 45 # we will not find the target if it is at an angle greater than this
-ERODE_DIALATE_ITERATIONS = 3 # iteerations of erosion adn dialation
-HSV_BOUNDS = ([85, 20, 150], [95, 255, 255]) # the lower and upper bounds of the values that will be kept after thresholding
+ERODE_DIALATE_ITERATIONS = 2 # iteerations of erosion adn dialation
+HSV_BOUNDS = ([50, 20, 20], [80, 255, 255]) # the lower and upper bounds of the values that will be kept after thresholding
 MAX_ANGLE = 45 # the maximum (and its negative the minimum) angle that a contour can be at to be considered as elegable to be a target
 
 def findTarget(image):
@@ -43,7 +43,7 @@ def findTarget(image):
     # We can use the "opening" operation to remove noise from the mask.
     # Opening is an erosion then dilation.
     kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(5,5))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=ERODE_DIALATE_ITERATIONS)
+    emask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=ERODE_DIALATE_ITERATIONS)
 
     erd_dlt_image = cv2.bitwise_and(image,image, mask=mask) #image after errode and dialate
 
