@@ -3,12 +3,14 @@ import numpy as np
 import server
 import sys
 from collections import OrderedDict
+import argparse
 
 RATIO = 23.5/4 # width/height
 TARGET_TOL = 0.7 # the tolerance in the target width to height ratio
 MIN_AREA = 300.0/(640**2) # the minimum area of any contours that will be kept in the image
 BRIGHTNESS = 0.2 # the brightness camera property
 CONTRAST = 0.9 # the contrast camera property
+WIDTH, HEIGHT = 640, 480 # making this smaller will improve speed
 TARGET_CUTOFF = 45 # we will not find the target if it is at an angle greater than this
 ERODE_DIALATE_ITERATIONS = 3 # iteerations of erosion adn dialation
 HSV_BOUNDS = ([85, 20, 150], [95, 255, 255]) # the lower and upper bounds of the values that will be kept after thresholding
@@ -110,37 +112,44 @@ def get_data(rect, image):
     return OrderedDict([('x',x), ('y',y), ('w',w), ('h',h), ('angle',angle)])
     
 if __name__ == "__main__":
-    # By default we operate in daemon mode and from live camera
-    daemon = True
-    from_file = False
-    if len(sys.argv) != 1:
-        # We have additional arguments - find the correct mode
-        daemon = False
-        if sys.argv[1] != 'live':
-            # Load from the specified file
-            from_file = True
-    if not from_file:
+    # Get the command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-l", "--live", help="Display a live window", action="store_true")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-s", "--stream", help="Dump the processed image to stdout for streaming\nTypical command to pipe into:\navconv -f rawvideo -pix_fmt bgr24 -s 640x480 -r 30 -i - -an  -f mpegts udp://127.0.0.255:1234", action="store_true")
+    group.add_argument("-v", "--verbose", help="Print output values on screen", action="store_true")
+    parser.add_argument("-f", "--file", help="Load a test image from file")
+
+    args = parser.parse_args()
+    
+    if not args.file:
         # Make a camera stream
         cap = cv2.VideoCapture(-1)
         cap.set(cv2.cv.CV_CAP_PROP_BRIGHTNESS, BRIGHTNESS)
         cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, CONTRAST)
+        cap.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, WIDTH)
+        cap.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, HEIGHT)
+
 
     while True:
         # Get an image from the camera
-        if from_file:
-            image = cv2.imread("img/target/" + sys.argv[1], -1)
+        if args.file:
+            image = cv2.imread("img/target/" + args.file, -1)
         else:
             ret, image = cap.read()
         
         to_send, processed_image = findTarget(image)
         if not to_send['w']:
-            if not daemon:
+            if args.verbose:
                 print "No target found"
         else:
-            if not daemon:
+            if args.verbose:
                 print "X:" + str(to_send['x']) + " Y:" + str(to_send['y']) + " Width:" + str(to_send['w']) + " Height:" + str(to_send['h']) + " Angle:" + str(to_send['angle'])
             server.udp_send(to_send.values())
-        if not daemon:
+        if args.live or args.file:
             cv2.imshow("Live Capture", processed_image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+        if args.stream:
+            sys.stdout.write( processed_image.tostring() )
+
