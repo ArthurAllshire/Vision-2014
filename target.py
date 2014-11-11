@@ -13,7 +13,7 @@ CONTRAST = 0.9 # the contrast camera property
 WIDTH, HEIGHT = 640, 480 # making this smaller will improve speed
 TARGET_CUTOFF = 45 # we will not find the target if it is at an angle greater than this
 ERODE_DIALATE_ITERATIONS = 2 # iteerations of erosion adn dialation
-HSV_BOUNDS = ([50, 20, 20], [80, 255, 255]) # the lower and upper bounds of the values that will be kept after thresholding
+HSV_BOUNDS = ([80, 20, 20], [100, 255, 255]) # the lower and upper bounds of the values that will be kept after thresholding
 MAX_ANGLE = 45 # the maximum (and its negative the minimum) angle that a contour can be at to be considered as elegable to be a target
 
 def findTarget(image):
@@ -24,10 +24,11 @@ def findTarget(image):
     global RATIO, TARGET_TOL, MIN_AREA, TARGET_CUTOFF, ERODE_DIALATE_ITERATIONS, HSV_BOUNDS
     
     # Use a Gaussian Blur to smooth out any ragged edges.
-    blurred = cv2.GaussianBlur(image, (7, 7), 0)
+    #gaussian blur removed as lags framerates on BBB
+    #blurred = cv2.GaussianBlur(image, (7, 7), 0)
 
     # Convert from BGR colourspace to HSV. Makes thresholding easier.
-    hsv_image = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     
     # Threshold the image to only get the green of the target. This gives us a
     # mask to apply to the original image (if we want).
