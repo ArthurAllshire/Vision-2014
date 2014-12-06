@@ -4,24 +4,26 @@ import server
 import sys
 from collections import OrderedDict
 import argparse
+import ConfigParser
 
-RATIO = 23.5/4 # width/height
-TARGET_TOL = 0.6 # the tolerance in the target width to height ratio
-MIN_AREA = 300.0/(640**2) # the minimum area of any contours that will be kept in the image
-BRIGHTNESS = 0.2 # the brightness camera property
-CONTRAST = 0.9 # the contrast camera property
-WIDTH, HEIGHT = 640, 480 # making this smaller will improve speed
-TARGET_CUTOFF = 45 # we will not find the target if it is at an angle greater than this
-ERODE_DIALATE_ITERATIONS = 2 # iteerations of erosion adn dialation
-HSV_BOUNDS = ([80, 20, 20], [100, 255, 255]) # the lower and upper bounds of the values that will be kept after thresholding
-MAX_ANGLE = 45 # the maximum (and its negative the minimum) angle that a contour can be at to be considered as elegable to be a target
+def parseConfig():
+    global configuration
+    configuration = {}
+    config = ConfigParser.ConfigParser()
+    config.read("config.ini")
+    if "target" in config.sections():
+        target_items = config.items("target")
+        for setting in target_items:
+            print(setting)
+            configuration[setting[0]] = eval(setting[1])
+    
 
 def findTarget(image):
-    '''Returns centre coordinates (x,y), dimensions (height, width),
+    '''Returns centre coordinates (x,y), dimensions (configuration['height'], configuration['width']),
     inclination angle, and the tweaked image (for manual/automatic 
     checking - not actually used by the robot itself).
     '''
-    global RATIO, TARGET_TOL, MIN_AREA, TARGET_CUTOFF, ERODE_DIALATE_ITERATIONS, HSV_BOUNDS
+    global configuration
     
     # Use a Gaussian Blur to smooth out any ragged edges.
     #gaussian blur removed as lags framerates on BBB
@@ -36,15 +38,15 @@ def findTarget(image):
     # which means a maximum of 255. To get around this OpenCV takes hue values
     # in the range [0, 180]. This means 120 degrees (for example) maps to 60 in
     # OpenCV.
-    lower = np.array(HSV_BOUNDS[0]) # get lower and upper values from numpy
-    upper = np.array(HSV_BOUNDS[1])
+    lower = np.array(configuration['hsv_bounds'][0]) # get lower and upper values from numpy
+    upper = np.array(configuration['hsv_bounds'][1])
     mask = cv2.inRange(hsv_image, lower, upper) # filter out all but values in the above range
     result = cv2.bitwise_and(image,image, mask=mask) # the image after thresholding
 
     # We can use the "opening" operation to remove noise from the mask.
     # Opening is an erosion then dilation.
     kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(5,5))
-    emask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=ERODE_DIALATE_ITERATIONS)
+    emask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=configuration['erode_dialate_iterations'])
 
     erd_dlt_image = cv2.bitwise_and(image,image, mask=mask) #image after errode and dialate
 
@@ -65,11 +67,11 @@ def findTarget(image):
     #Then sanity checks to find the largest contour that has the correct dimentions, area and side ratio
     for contour in contours:
         area = cv2.contourArea(contour)
-        if area>target_area and area>(MIN_AREA*image.shape[1]*image.shape[1]):# ifs are staggered for efficiency reasons
+        if area>target_area and area>(configuration['min_area']*image.shape[1]*image.shape[1]):# ifs are staggered for efficiency reasons
             rect = cv2.minAreaRect(contour)
             stats = get_data(rect, image)
-            # if we have the right width to height ratio (within a cirtain tolerance) and the angle is within some threshold and our width to height ratio is within a cirtain range
-            if -MAX_ANGLE<=stats['angle']<=MAX_ANGLE and 2<stats['w']/stats['h']<RATIO*(1+TARGET_TOL):
+            # if we have the right configuration['width'] to configuration['height'] ratio (within a cirtain tolerance) and the angle is within some threshold and our configuration['width'] to configuration['height'] ratio is within a cirtain range
+            if -configuration['max_angle']<=stats['angle']<=configuration['max_angle'] and 2<stats['w']/stats['h']<configuration['ratio']*(1+configuration['target_tol']):
                 #print "found one"
                 target_contour = contour
                 target_area = area
@@ -97,13 +99,12 @@ def findTarget(image):
 
 #get the vital stats out of an obb's rect
 def get_data(rect, image):
-    global RATIO
     img_height, img_width, depth = image.shape
     if rect[1][0]>rect[1][1]:
         w=rect[1][0]/img_width
         h=rect[1][1]/img_width
         angle = rect[2]
-        swapped = False # we have not swapped the width and height
+        swapped = False # we have not swapped the configuration['width'] and configuration['height']
     else:
         w=rect[1][1]/img_width
         h=rect[1][0]/img_width
@@ -123,14 +124,15 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     
+    parseConfig()
+    
     if not args.file:
         # Make a camera stream
         cap = cv2.VideoCapture(-1)
-        cap.set(cv2.cv.CV_CAP_PROP_BRIGHTNESS, BRIGHTNESS)
-        cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, CONTRAST)
-        cap.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, WIDTH)
-        cap.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, HEIGHT)
-
+        cap.set(cv2.cv.CV_CAP_PROP_BRIGHTNESS, configuration['brightness'])
+        cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, configuration['contrast'])
+        cap.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, configuration['width'])
+        cap.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, configuration['height'])
 
     while True:
         # Get an image from the camera
@@ -146,7 +148,7 @@ if __name__ == "__main__":
         else:
             if args.verbose:
                 print "X:" + str(to_send['x']) + " Y:" + str(to_send['y']) + " Width:" + str(to_send['w']) + " Height:" + str(to_send['h']) + " Angle:" + str(to_send['angle'])
-            server.udp_send(to_send.values())
+            #server.udp_send(to_send.values())
         if args.live or args.file:
             cv2.imshow("Live Capture", processed_image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
