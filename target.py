@@ -5,6 +5,7 @@ import sys
 from collections import OrderedDict
 import argparse
 import ConfigParser
+import urllib
 
 def parseConfig():
     global configuration
@@ -97,6 +98,22 @@ def findTarget(image):
     
     return stats, result_image
 
+def parse_stream(stream):
+    global img_bytes
+    image = None
+    got_frame = False
+    while not got_frame:
+        img_bytes+=stream.read(1024)
+        a = img_bytes.find('\xff\xd8')
+        b = img_bytes.find('\xff\xd9')
+        if a!=-1 and b!=-1:
+            print got_frame
+            got_frame = True
+            jpg = img_bytes[a:b+2]
+            img_bytes= img_bytes[b+2:]
+            image = cv2.imdecode(np.fromstring(jpg, dtype=np.uint8),cv2.CV_LOAD_IMAGE_COLOR)
+    return image
+
 #get the vital stats out of an obb's rect
 def get_data(rect, image):
     img_height, img_width, depth = image.shape
@@ -114,6 +131,7 @@ def get_data(rect, image):
     return OrderedDict([('x',x), ('y',y), ('w',w), ('h',h), ('angle',angle)])
     
 if __name__ == "__main__":
+    global img_bytes
     # Get the command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--live", help="Display a live window", action="store_true")
@@ -121,27 +139,41 @@ if __name__ == "__main__":
     group.add_argument("-s", "--stream", help="Dump the processed image to stdout for streaming\nTypical command to pipe into:\navconv -f rawvideo -pix_fmt bgr24 -s 640x480 -r 30 -i - -an  -f mpegts udp://127.0.0.255:1234", action="store_true")
     group.add_argument("-v", "--verbose", help="Print output values on screen", action="store_true")
     parser.add_argument("-f", "--file", help="Load a test image from file")
+    parser.add_argument("-w", "--webcam", help="Make the code receive frames from a webcam as opposed to an IP camera")
 
     args = parser.parse_args()
     
     parseConfig()
     
+    img_bytes = ''
+    stream = None
+    processed_image = None
+    to_send = OrderedDict([('x',0), ('y',0), ('w',0), ('h',0), ('angle',0)])
+    
     if not args.file:
-        # Make a camera stream
-        cap = cv2.VideoCapture(-1)
-        cap.set(cv2.cv.CV_CAP_PROP_BRIGHTNESS, configuration['brightness'])
-        cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, configuration['contrast'])
-        cap.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, configuration['width'])
-        cap.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, configuration['height'])
+        if not args.webcam and not args.file:
+            # Make a camera stream
+            url = "http://root:pass@192.168.0.11/mjpg/video.mjpg?%s&%s&%s&%s" % ("brightness=" + str(configuration['brightness']), "contrast=" + str(configuration['contrast']), "&width" + str(configuration['width']), "&height" + str(configuration['height']))
+            stream = urllib.urlopen(url)
+        else:
+            cap=cv2.VideoCapture(-1)
+            cap.set(cv2.cv.CV_CAP_PROP_BRIGHTNESS, configuration['brightness'])
+            cap.set(cv2.cv.CV_CAP_PROP_CONTRAST, configuration['contrast'])
+            cap.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, configuration['width'])
+            cap.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, configuration['height'])
 
     while True:
         # Get an image from the camera
         if args.file:
             image = cv2.imread("img/target/" + args.file, -1)
-        else:
+        elif args.webcam:
             ret, image = cap.read()
-        
-        to_send, processed_image = findTarget(image)
+        else:
+            image = parse_stream(stream)
+            
+        if image is not None:
+            to_send, processed_image = findTarget(image)
+
         if not to_send['w']:
             if args.verbose:
                 print "No target found"
@@ -149,10 +181,7 @@ if __name__ == "__main__":
             if args.verbose:
                 print "X:" + str(to_send['x']) + " Y:" + str(to_send['y']) + " Width:" + str(to_send['w']) + " Height:" + str(to_send['h']) + " Angle:" + str(to_send['angle'])
             #server.udp_send(to_send.values())
-        if args.live or args.file:
+        if (args.live or args.file) and processed_image != None:
             cv2.imshow("Live Capture", processed_image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-        if args.stream:
-            sys.stdout.write( processed_image.tostring() )
-
